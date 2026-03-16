@@ -30,7 +30,7 @@ export class FormController {
     return this.formService.create(createFormDto, user.email);
   }
 
-  @Put('saveform/:id')
+  @Put('save/:id')
   @UseGuards(JwtAuthGuard)
   update(
     @Param('id', ParseIntPipe) id: number,

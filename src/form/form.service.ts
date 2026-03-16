@@ -15,7 +15,7 @@ import { users } from '../database/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { Request, Response } from 'express';
-import { GoogleGenAI } from '@google/genai/web';
+import { GoogleGenAI } from '@google/genai';
 import { FormAIDto } from './dto/FormAi.dto';
 
 interface AiFormResult {
@@ -368,7 +368,7 @@ CONTENT RULES:
 `;
 
     const ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY,
     });
 
     const response = await ai.models.generateContent({
