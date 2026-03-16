@@ -56,7 +56,7 @@ export const responses = sqliteTable(
     surveyId: integer('survey_id').references(() => surveys.id, {
       onDelete: 'cascade',
     }),
-    responseData: text('response_data'),
+    responseData: text('response_data', { mode: 'json' }),
     submittedAt: text('submitted_at').default(sql`CURRENT_TIMESTAMP`),
     browserId: text('browser_id'),
     userId: integer('user_id').references(() => users.id, {
