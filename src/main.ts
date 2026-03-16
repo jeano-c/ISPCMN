@@ -9,10 +9,13 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [
+      'http://localhost:3000',
+      'https://www.ispecmn.site',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean),
 
     credentials: true,
-
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   });
 
