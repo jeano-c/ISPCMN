@@ -1,5 +1,5 @@
-import { IsObject } from 'class-validator';
+import { IsArray } from 'class-validator';
 export class CreateResponseDto {
-  @IsObject({ message: 'responseData must be a valid JSON object' })
-  responseData?: Record<string, any>;
+  @IsArray({ message: 'responseData must be an array of answers' })
+  responseData: any[]; // Changed from IsObject to IsArray
 }

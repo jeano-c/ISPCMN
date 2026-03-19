@@ -76,7 +76,7 @@ export class FormController {
     return res.status(result.status).json(result.data);
   }
 
-  @Delete(':id')
+  @Delete('delete/:id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
     const user = req.user as { email: string };

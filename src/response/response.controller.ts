@@ -25,7 +25,7 @@ import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import 'multer';
 
-@Controller('response')
+@Controller('api/Response')
 export class ResponseController {
   constructor(private readonly responseService: ResponseService) {}
 

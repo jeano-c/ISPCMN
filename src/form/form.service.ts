@@ -323,74 +323,116 @@ export class FormService {
       .returning();
 
     const surveyId = survey[0].id;
-
     const userTopic = dto.promt;
 
+    // 1. IMPROVED PROMPT: Real examples, no literal placeholders
     const prompt = `
-You are an API that outputs strict JSON.
 Analyze the request: '${userTopic}'.
+Generate a comprehensive survey form.
 
 ALLOWED QUESTION TYPES:
 multiple_choice, long_text, short_text, email, heading, paragraph,
 choice_matrix, checkbox, dropdown, switch, contact, phone_number, file_uploader
 
 PAGINATION RULES:
-1. DEFAULT to a SINGLE PAGE
-2. ONLY create multiple pages if user explicitly asks
-3. Simple forms stay ONE page
+1. DEFAULT to a SINGLE PAGE.
+2. ONLY create multiple pages if the user explicitly asks.
 
-REQUIRED JSON STRUCTURE:
+REQUIRED JSON STRUCTURE (Output exactly this format with real sample data):
 {
-"title": "(Generate a creative title)",
-"pages": [
-  {
-    "id": "(uuid)",
-    "questions": [
-      {
-        "id": "(uuid)",
-        "type": "(allowed_type)",
-        "order": 1,
-        "question": "(Question text)",
-        "options": ["Opt 1","Opt 2"],
-        "required": true
-      }
-    ]
-  }
-]
+  "title": "A creative title for the survey",
+  "pages": [
+    {
+      "id": "page_1",
+      "questions": [
+        {
+          "id": "q_1",
+          "type": "short_text",
+          "order": 1,
+          "question": "What is your primary goal?",
+          "options": [],
+          "required": true
+        },
+        {
+          "id": "q_2",
+          "type": "multiple_choice",
+          "order": 2,
+          "question": "Which of these applies to you?",
+          "options": ["Option A", "Option B", "Option C"],
+          "required": false
+        }
+      ]
+    }
+  ]
 }
 
 CONTENT RULES:
-- Return raw JSON only
-- Unique UUID for every id
-- Options only for choice questions
-- Include heading explaining survey
-- Minimum 10 questions
+- Minimum 10 questions.
+- Options array must have items ONLY for choice questions (multiple_choice, dropdown, checkbox, choice_matrix). Otherwise, it must be an empty array [].
+- "required" must always be a boolean (true or false).
 `;
 
     const ai = new GoogleGenAI({
       apiKey: process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY,
     });
 
+    // 2. FORCE JSON MODE: This prevents the AI from wrapping the output in ```json ... ```
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+      },
     });
 
-    let aiResponse = response.text ?? '';
-
-    aiResponse = aiResponse.replace('```json', '').replace('```', '').trim();
+    const aiResponse = response.text ?? '{}';
 
     try {
+      // Because we forced application/json, we can parse safely
       const parsed = JSON.parse(aiResponse) as AiFormResult;
-
       const title = parsed.title ?? dto.title ?? 'Generated Survey';
-      const formData = parsed.pages ?? parsed;
+
+      // Handle the case where AI returns 'pages' array or directly returns the array
+      let pages: any[] = Array.isArray(parsed.pages)
+        ? parsed.pages
+        : Array.isArray(parsed)
+          ? parsed
+          : [];
+
+      // 3. BULLETPROOFING: Inject real UUIDs and enforce data types here!
+      interface Question {
+        id: string;
+        type: string;
+        order: number;
+        question: string;
+        required: boolean;
+        options: string[];
+        [key: string]: unknown;
+      }
+
+      interface Page {
+        id: string;
+        questions: Question[];
+        [key: string]: unknown;
+      }
+
+      pages = pages.map((page: Page) => ({
+        ...page,
+        id: randomUUID(),
+        questions: (page.questions || []).map((q: Question, index: number) => ({
+          ...q,
+          id: randomUUID(),
+          order: index + 1,
+          required: q.required === true,
+          options: Array.isArray(q.options) ? q.options : [],
+        })),
+      })) as Page[];
 
       await this.db
         .update(schema.surveys)
         .set({
           title,
-          formData: JSON.stringify(formData),
+          formData: JSON.stringify(pages),
         })
         .where(eq(schema.surveys.id, surveyId));
 
@@ -399,10 +441,11 @@ CONTENT RULES:
         surveyId,
         newTitle: title,
       };
-    } catch {
+    } catch (error) {
       throw new BadRequestException({
-        message: 'AI generation failed to produce valid JSON',
+        message: 'AI generation failed or produced invalid data',
         raw: aiResponse,
+        error: error.message,
       });
     }
   }
