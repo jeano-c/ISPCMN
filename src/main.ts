@@ -12,7 +12,7 @@ async function bootstrap() {
     origin: [
       'http://localhost:3000',
       'https://www.ispecmn.site',
-      'http://localhost:5173/',
+      'http://localhost:5174/',
       process.env.FRONTEND_URL,
     ].filter(Boolean),
 

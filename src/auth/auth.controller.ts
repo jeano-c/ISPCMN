@@ -34,7 +34,7 @@ export class AuthController {
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      sameSite: process.env.PRODUCTION === 'true' ? 'none' : 'lax',
       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
   }
@@ -83,7 +83,7 @@ export class AuthController {
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      sameSite: process.env.PRODUCTION === 'true' ? 'none' : 'lax',
     });
     return { message: 'Logged out successfully' };
   }
@@ -121,7 +121,7 @@ export class AuthController {
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      sameSite: process.env.PRODUCTION === 'true' ? 'none' : 'lax',
     });
     return { message: 'Account deleted successfully' };
   }
